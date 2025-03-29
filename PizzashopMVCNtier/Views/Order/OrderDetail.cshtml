@@ -1,0 +1,175 @@
+@model DataLogicLayer.ViewModels.OrderDetailsViewModel
+@{
+    ViewData["Title"] = "Order Details Page";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    decimal TotalAmount = 0;
+}
+@functions {
+    public static string FormatDateString(string dateString)
+    {
+        if (DateTime.TryParse(dateString, out DateTime parsedDate))
+        {
+            return parsedDate.ToString("dd-MM-yyyy HH:mm");
+        }
+        return "";
+    }
+}
+
+<div class="body_content d-flex justify-content-center">
+    @* <div style="width: 1000px;"> *@
+    <div id="orderDetailOuter">
+        <div class=" col d-flex flex-row justify-content-between user_list_header mb-4">
+            <div class="order_header">
+                <span class="fs-2 fw-medium">Order-Details</span>
+            </div>
+            <a asp-action="Index" asp-controller="Order" style="max-width: 150px;"
+                class="btn back_btn d-flex align-items-center justify-content-center">
+                <img src="~/images/icons/chevron-left.svg" alt="" />
+                <span class="d-none d-md-block">Back</span>
+            </a>
+        </div>
+
+        <!-- Order Summary Division-->
+        <div class="bg-white p-3 orderBorderRadius">
+            <div class="d-flex flex-column flex-sm-row justify-content-between mb-3">
+                <div class="d-flex align-items-sm-center flex-column flex-sm-row justify-content-sm-center">
+                    <span class="fs-4 fw-medium me-2">Order Summary</span>
+                    <span class="orderStatusBox @Model.OrderStatus.ToLower().Replace(" ","-")">@Model.OrderStatus</span>
+                </div>
+                <a class="btn w-auto my-1 my-lg-0 ms-1 d-flex align-items-center justify-content-center text-white"
+                    id="exportOrderBtn" style="background-color:#0066a7; max-width: 150px;">
+                    <img src="/images/icons/export-svgrepo-com.svg" width="30px">
+                    Export
+                </a>
+            </div>
+
+            <p><span class="fw-medium">Invoice No.: &nbsp&nbsp</span>@Model.InvoiceNo</p>
+            <div class="d-flex flex-column flex-lg-row flex-wrap">
+                <p class="me-3"><span class="fw-medium">Pain On :</span>@FormatDateString(Model.PaidOn)</p>
+                <p class="me-3"><span class="fw-medium">Placed On :</span>@FormatDateString(Model.PlacedOn)</p>
+                <p class="me-3"><span class="fw-medium">Modified On : </span>@FormatDateString(Model.ModifiedOn)</p>
+                <p class="me-3"><span class="fw-medium">Order Duration : </span>@(Model.OrderDuration.Split(".")[0])</p>
+            </div>
+        </div>
+
+        <div class="d-flex flex-column flex-sm-row mt-3 row gap-3 p-0 m-0 mb-3">
+            <div class="bg-white orderBorderRadius col p-3">
+                <div class="d-flex align-items-center justify-content-start mb-3">
+                    <img src="~/images/icons/person-lines-fill.svg" alt="" width="30px" height="30px">
+                    <span class=" ms-3 fs-4 fw-medium me-2">Customer Details</span>
+                </div>
+                <p class="mb-2">Name: @Model.CustomerDetails.Customername</p>
+                <p class="mb-2">Phone: @Model.CustomerDetails.Phone</p>
+                <p class="mb-2">No of Persons: 2</p>
+                <p class="mb-2">Email: @Model.CustomerDetails.Email</p>
+
+            </div>
+            <div class="bg-white orderBorderRadius col p-3">
+                <div class="d-flex align-items-center justify-content-start mb-3">
+                    <img src="~/images/icons/dining-table-icon.svg" alt="" width="30px" height="30px">
+                    <span class=" ms-3 fs-4 fw-medium me-2">Table Details</span>
+                </div>
+
+                <p class="mb-2">Table:
+                    @foreach (var table in Model.TableDetails)
+                    {
+                        <span>@table</span>
+                    }
+                </p>
+                <p class="mb-2">Section: <span>@Model.SectionName</span>
+                </p>
+            </div>
+        </div>
+
+        <div class="bg-white p-3 orderBorderRadius container-fluid">
+            <div>
+                <span class="fs-4 fw-medium">Order Items</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table text-nowrap">
+                    <thead>
+                        <tr class="text-start">
+                            <th>Sr.No</th>
+                            <th>Item</th>
+                            <th>Quantity</th>
+                            <th class="text-end">Price</th>
+                            <th class="text-end">Total Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < Model.Items.Count; ++i)
+                        {
+                            <tr class="text-start">
+                                <td>@(i + 1)</td>
+                                <td>@Model.Items[i].ItemName
+                                    <ul>
+                                        @foreach (var addons in @Model.Items[i].AddOns)
+                                        {
+                                            <li>@addons.Name</li>
+                                        }
+                                    </ul>
+                                </td>
+                                <td>@Model.Items[i].Quantity
+                                    <ul class="list-unstyled">
+                                        @foreach (var addons in Model.Items[i].AddOns)
+                                        {
+                                            <li>@addons.Quantity</li>
+                                        }
+                                    </ul>
+                                </td>
+                                <td class="text-end">₹@(Model.Items[i].Rate?.ToString("f2") ?? "0.00")
+                                    <ul class="list-unstyled">
+                                        @foreach (var addons in Model.Items[i].AddOns)
+                                        {
+                                            <li>₹@(addons.Rate?.ToString("f2") ?? "0.00")</li>
+                                        }
+                                    </ul>
+                                </td>
+                                <td class="text-end">₹@(Model.Items[i].TotalAmount?.ToString("f2") ?? "0.00")
+                                    <ul class="list-unstyled">
+                                        @foreach (var addons in Model.Items[i].AddOns)
+                                        {
+                                            <li>₹@((addons.Rate * addons.Quantity)?.ToString("f2") ?? "0.00")</li>
+                                        }
+                                    </ul>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex flex-column align-items-end">
+                <table class="orderDetailsPriceTable">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="pe-5 fw-medium text-dark" style="font-size: 14px;">Subtotal:</td>
+                            <td class="text-end">₹@(Model.SubTotal?.ToString("f2") ?? "0.00")</td>
+                        </tr>
+                        @foreach (var tax in Model.Taxes)
+                        {
+                            <tr>
+                                <td class="pe-5 fw-medium text-dark" style="font-size: 14px;">@tax.TaxName</td>
+                                <td class="text-end">₹@((tax.TaxType ? (Model.SubTotal * tax.TaxValue)/100 : tax.TaxValue)?.ToString("f2") ?? "0.00")</td>
+                                @{
+                                    TotalAmount += (decimal)(tax.TaxType ? (Model.SubTotal * tax.TaxValue)/100 : tax.TaxValue);
+                                }
+                            </tr>
+                        }
+                        <tr>
+                            <td class="pe-5 fw-medium text-dark" style="font-size: 14px;">Total :</td>
+                            <td class="text-end">₹@((TotalAmount + Model.SubTotal)?.ToString("f2") ?? "0.00")</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

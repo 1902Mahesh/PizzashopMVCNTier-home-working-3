@@ -1,0 +1,237 @@
+@model DataLogicLayer.ViewModels.OrderDetailsViewModel
+@{
+    ViewData["Title"] = "Order Details Page";
+    Layout = null;
+    decimal TotalAmount = 0;
+}
+@functions {
+    public static string FormatDateString(string dateString)
+    {
+        if (DateTime.TryParse(dateString, out DateTime parsedDate))
+        {
+            return parsedDate.ToString("dd-MM-yyyy HH:mm");
+        }
+        return "";
+    }
+}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <title>Pizza Shop Invoice</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+        }
+
+        ul {
+            padding: 0;
+        }
+
+        li {
+            list-style: none;
+        }
+
+        .invoice-container {
+            width: 80%;
+            margin: auto;
+            padding: 20px;
+            padding-left: 160px;
+            padding-right: 160px;
+        }
+
+        .header {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .blue_clr {
+            color: #0066a7 !important;
+        }
+
+        p {
+            margin: 0;
+        }
+
+        .header h1 {
+            color: #0066a7;
+        }
+
+        .details {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .details div {
+            width: 48%;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th,
+        td {
+            border-bottom: 2px solid #1189d4;
+            text-align: left;
+            padding: 8px;
+        }
+
+        th {
+            background-color: #0066a7 !important;
+            color: #fff !important;
+        }
+
+        .total-section {
+            margin-top: 20px;
+            text-align: right;
+        }
+
+        .payment-info {
+            margin-top: 20px;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="invoice-container">
+        <div class="header">
+            <div>
+                <img src="~/images/logos/pizzashop_logo.png" alt="" width="60px" height="50px">
+            </div>
+            <div>
+                <h1>PIZZASHOP</h1>
+            </div>
+        </div>
+
+        <div class="details">
+            <div>
+                <h5 class="blue_clr fw-bold">Customer Details</h5>
+                <p><strong>Name:</strong> @Model.CustomerDetails.Customername</p>
+                <p><strong>Mob:</strong> @Model.CustomerDetails.Phone</p>
+            </div>
+            <div>
+                <h5 class="blue_clr fw-bold">Order Details</h5>
+                <p><strong>Invoice Number:</strong> @Model.InvoiceNo</p>
+                <p><strong>Date:</strong> @FormatDateString(Model.PlacedOn)</p>
+                <p><strong>Section:</strong> @Model.SectionName</p>
+                <p><strong>Table:</strong>
+                    @foreach (var table in Model.TableDetails)
+                    {
+                        @table
+                    }
+                </p>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table text-nowrap">
+                <thead>
+                    <tr class="text-start">
+                        <th>Sr.No</th>
+                        <th>Item</th>
+                        <th>Quantity</th>
+                        <th class="text-end">Price</th>
+                        <th class="text-end">Total Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (int i = 0; i < Model.Items.Count; ++i)
+                    {
+                        <tr class="text-start">
+                            <td style="vertical-align: middle;">@(i + 1)</td>
+                            <td>@Model.Items[i].ItemName
+                                <ul>
+                                    @foreach (var addons in @Model.Items[i].AddOns)
+                                    {
+                                        <li>@addons.Name</li>
+                                    }
+                                </ul>
+                            </td>
+                            <td>@Model.Items[i].Quantity
+                                <ul class="list-unstyled">
+                                    @foreach (var addons in Model.Items[i].AddOns)
+                                    {
+                                        <li>@addons.Quantity</li>
+                                    }
+                                </ul>
+                            </td>
+                            <td class="text-end">@(Model.Items[i].Rate?.ToString("f2") ?? "0.00")
+                                <ul class="list-unstyled">
+                                    @foreach (var addons in Model.Items[i].AddOns)
+                                    {
+                                        <li>@(addons.Rate?.ToString("f2") ?? "0.00")</li>
+                                    }
+                                </ul>
+                            </td>
+                            <td class="text-end">@(Model.Items[i].TotalAmount?.ToString("f2") ?? "0.00")
+                                <ul class="list-unstyled">
+                                    @foreach (var addons in Model.Items[i].AddOns)
+                                    {
+                                        <li>@((addons.Rate * addons.Quantity)?.ToString("f2") ?? "0.00")</li>
+                                    }
+                                </ul>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="total-section">
+            <table class="table table-borderless"">
+                    <tbody>
+                        <tr>
+                            <td class=" fw-medium text-dark p-0" style="font-size: 18px;">Subtotal:</td>
+                <td class="text-end">@(Model.SubTotal?.ToString("f2") ?? "0.00")</td>
+                </tr>
+                @foreach (var tax in Model.Taxes)
+                {
+                    <tr>
+                        <td class="fw-medium text-dark p-0" style="font-size: 18px;">@tax.TaxName</td>
+                        <td class="text-end">@((tax.TaxType ? (Model.SubTotal * tax.TaxValue)/100 :
+                                                    tax.TaxValue)?.ToString("f2") ?? "0.00")</td>
+                    @{
+                            TotalAmount += (decimal)(tax.TaxType ? (Model.SubTotal * tax.TaxValue) / 100 : tax.TaxValue);
+                        }
+                    </tr>
+                }
+                <tr>
+                    <td class="ps-0 fw-bold text-dark blue_clr" style="font-size: 18px; border-top: 2px solid #1189d4;">
+                        Total Amount Due:</td>
+                    <td class="text-end fw-bold blue_clr" style="border-top: 2px solid #1189d4;"">@((TotalAmount + Model.SubTotal)?.ToString("f2") ?? "0.00")</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class=" payment-info">
+                        <h5 class="blue_clr fw-bold">Payment Information</h5>
+                        <p><strong>Payment Method:</strong> @Model.PaymentMethod</p>
+        </div>
+
+        <div class="footer">
+            <p class="blue_clr fw-bold fs-5">THANK YOU!</p>
+        </div>
+    </div>
+</body>
+
+</html>

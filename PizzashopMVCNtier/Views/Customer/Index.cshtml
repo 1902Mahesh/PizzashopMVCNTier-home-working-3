@@ -1,0 +1,182 @@
+@* @model DataLogicLayer.ViewModels.OrderIndexViewModel *@
+@{
+    ViewData["Title"] = "Customer Page";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="body_content">
+    <!-- Search, Status, Time -->
+    <div class="heading my-3 d-flex flex-column flex-sm-row flex-warp justify-content-between">
+        <span class="fs-3 fs-md-1 user_header me-2">Customers</span>
+        <div class="search-element d-flex flex-column justify-content-end flex-sm-row mt-2 mt-md-0 ">
+            <div class="d-flex position-relative col-lg-3 col-xl-4" role="search">
+                <input class="form-control me-2 search-user" type="search" placeholder="Search" id="customerSearch"
+                    aria-label="Search" />
+                <label for="search" class="search_icon" id="userSearchLabel" style="top: 10px;">
+                    <img src="~/images/icons/search.svg" /></label>
+            </div>
+
+            <div class="d-flex flex-column flex-sm-row">
+                <div
+                    class="statusTimeDropdown d-flex align-items-center py-1 my-1 my-lg-0 mx-lg-1 bg-white col-lg-3 col-xl-4 me-sm-3">
+                    <select class="form-select border-0" id="customerTimeRange">
+                        <option value="All Time">All Time</option>
+                        <option value="Last 7 Days">Last 7 days</option>
+                        <option value="Last 30 Days">Last 30 days</option>
+                        <option value="Current Month">Current Month</option>
+                        <option value="Custom Range">Custom Range</option>
+                    </select>
+                </div>
+                <a class="btn w-auto my-1 my-lg-0 ms-1 d-flex align-items-center justify-content-center text-white"
+                    id="exportCustomerBtn" style="background-color:#0066a7">
+                    <img src="/images/icons/export-svgrepo-com.svg" width="35px">
+                    Export
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div id="customerTableContent" class="table_container">
+    </div>
+</div>
+
+<div class="modal fade" tabindex="-1" id="customeDateRangeModal" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bolder text-muted">
+                    Select Date Range
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center d-flex row">
+                <div class="form-floating col">
+                    <input type="date" class="form-control w-100" id="customerFromDate">
+                    <label for="orderFromDate" class="mx-2">From Date</label>
+                </div>
+                <div class="form-floating col">
+                    <input type="date" class="form-control w-100" id="customerToDate">
+                    <label for="orderToDate" class="mx-2">To Date</label>
+                </div>
+            </div>
+        <div class="modal-footer border-0 d-flex justify-content-center">
+            <button type="button" class="btn btn-primary"
+                id="applyCustomDateBtn">Submit</button>
+            <button type="button" class="btn cancle_btn" data-bs-dismiss="modal">Cancle</button>
+        </div>
+    </div>
+</div>
+</div>
+
+@section Scripts {
+    <script>
+        let columnName = "";
+        let sortOrder = "";
+        function CustomerPaginationAjax(currentPage) {
+            let pageSize = $('#customerPageSize').val();
+            let searchQuery = $('#customerSearch').val();
+            let toDate = $('#customerFromDate').val();
+            let fromDate = $('#customerToDate').val();
+            let time = $('#customerTimeRange').val();
+            if (pageSize == 0 || pageSize == null) pageSize = 3;
+            if (searchQuery == null) searchQuery = "";
+            if (toDate == null) toDate = "";
+            if (fromDate == null) fromDate = "";
+            $.ajax({
+                url: '@Url.Action("GetCustomerList", "Customer")',
+                type: "GET",
+                data: { pageNo: currentPage, pageSize: pageSize, search: searchQuery, columnName: columnName, sortOrder: sortOrder, toDate: toDate, fromDate: fromDate, time: time },
+                dataType: "html",
+                success: function (data) {
+                    $("#customerTableContent").html(data);
+                },
+                error: function () {
+                    $("#customerTableContent").html('No Customers Fetched');
+                }
+            })
+        }
+
+        $("#customerSearch").on("input", function (e) {
+            CustomerPaginationAjax(1);
+        })
+
+        $(document).on("click", ".sort-btn", function () {
+            columnName = $(this).data("name");
+            sortOrder = $(this).data("order");
+            CustomerPaginationAjax(1);
+        })
+
+        $(document).ready(function () {
+            CustomerPaginationAjax(1);
+        })
+    </script>
+
+    <script>
+        $(document).ready(function () {
+            $(document).on("change","#customerTimeRange",function () {
+                let selectedValue = $(this).val();
+
+                if (selectedValue === "Custom Range") {
+                    $("#customeDateRangeModal").modal("show");
+                } else {
+                    CustomerPaginationAjax(1);
+                }
+            });
+
+            $("#applyCustomDateBtn").click(function () {
+                let toDate = $('#customerFromDate').val();
+                let fromDate = $('#customerToDate').val();
+
+                $("#customeDateRangeModal").modal("hide");
+
+                CustomerPaginationAjax(1);
+            });
+    });
+
+    </script>
+
+    <script>
+        function ExportData() {
+            let searchQuery = $('#customerSearch').val();
+            let toDate = $('#customerFromDate').val();
+            let fromDate = $('#customerToDate').val();
+            let time = $('#customerTimeRange').val();
+            if (searchQuery == null) searchQuery = "";
+
+            $.ajax({
+                url: '@Url.Action("ExportCustomerToExcel", "Customer")',
+                type: "GET",
+                data: { search: searchQuery, time: time,fromDate: fromDate, toDate: toDate },
+                xhrFields: {
+                    responseType: 'blob'
+                },
+                success: function (data, status, xhr) {
+                    let filename = "Customers.xlsx";
+
+                    let disposition = xhr.getResponseHeader('Content-Disposition');
+                    if (disposition && disposition.indexOf('attachment') !== -1) {
+                        let matches = /filename="([^"]+)"/.exec(disposition);
+                        if (matches !== null && matches[1]) filename = matches[1];
+                    }
+
+                    let blob = new Blob([data], { type: xhr.getResponseHeader('Content-Type') });
+                    let link = document.createElement('a');
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                },
+                error: function () {
+                    console.log("Export Failed");
+                }
+            });
+        }
+
+        $(document).on("click", "#exportCustomerBtn", function () {
+            ExportData();
+        });
+
+    </script>
+}

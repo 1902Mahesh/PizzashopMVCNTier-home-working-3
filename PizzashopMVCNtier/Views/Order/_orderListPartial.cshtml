@@ -1,0 +1,143 @@
+@model DataLogicLayer.ViewModels.OrderViewModel
+@if(Model.Page.TotalRecords <= 0)
+{
+    <h3>No Records Found</h3>
+}
+else
+{
+<div class="table-responsive">
+    <table class="table">
+        <thead>
+            <tr class="text-center">
+                <th scope="col">
+                    #Order
+                    <button class="btn p-0 sort-btn" data-order="asc"  data-name="order">
+                        <img src="~/images/icons/arrow-up.svg" alt="" width="20px" />
+                    </button>
+                    <button class="btn p-0 sort-btn" data-name="order" data-order="desc">
+                        <img src="~/images/icons/arrow-down.svg" alt="" width="20px" />
+                    </button>
+                </th>
+                <th scope="col">Date
+                    <button class="btn p-0 sort-btn" data-order="asc"  data-name="date">
+                        <img src="~/images/icons/arrow-up.svg" alt="" width="20px" />
+                    </button>
+                    <button class="btn p-0 sort-btn" data-name="date" data-order="desc">
+                        <img src="~/images/icons/arrow-down.svg" alt="" width="20px" />
+                    </button>
+                </th>
+                <th scope="col">Customer
+                    <button class="btn p-0 sort-btn" data-order="asc"  data-name="customer">
+                        <img src="~/images/icons/arrow-up.svg" alt="" width="20px" />
+                    </button>
+                    <button class="btn p-0 sort-btn" data-name="customer" data-order="desc">
+                        <img src="~/images/icons/arrow-down.svg" alt="" width="20px" />
+                </button>
+                </th>
+                <th scope="col">
+                    Status
+                </th>
+                <th scope="col">Payment Mode</th>
+                <th scope="col">Rating</th>
+                <th scope="col">Total Amount
+                    <button class="btn p-0 sort-btn" data-order="asc"  data-name="totalAmount">
+                        <img src="~/images/icons/arrow-up.svg" alt="" width="20px" />
+                    </button>
+                    <button class="btn p-0 sort-btn" data-name="totalAmount" data-order="desc">
+                        <img src="~/images/icons/arrow-down.svg" alt="" width="20px" />
+                    </button>
+                </th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach(var order in Model.OrderList)
+            {
+                <tr class="text-center">
+                <td class="user_profile">
+                    #@order.OrderNo
+                </td>
+                <td>@order.OrderDate</td>
+                <td>@order.CustomerName</td>
+                <td>@order.Status</td>
+                <td>
+                    @order.PaymentMode
+                </td>
+                <td>
+                    <span class="stars">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            if (i <= Math.Floor(order.AvgRating))
+                            {
+                                <i class="fas fa-star text-warning"></i> 
+                            }
+                            else if (i - order.AvgRating < 1)
+                            {
+                                <i class="fas fa-star-half-alt text-warning"></i> 
+                            }
+                            else
+                            {
+                                <i class="far fa-star text-warning"></i> 
+                            }
+                        }
+                    </span>
+                </td>
+                <td>
+                    ₹@order.TotalAmount
+                </td>
+                <td>
+                    <a class="btn user_action exportPdfBtn" asp-route-id="@order.OrderNo" asp-action="GenerateInvoice">
+                        <img src="~/images/icons/filetype-pdf.svg" alt="" />
+                    </a>
+                    <a asp-action="OrderDetail" asp-controller="Order" asp-route-id="@order.OrderNo" class="btn user_action" type="button">
+                        <img src="~/images/icons/eye-open.svg" alt="" />
+                    </a>
+                </td>
+            </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<!-- Paggination Frontend Start -->
+<div class="d-flex flex-sm-row flex-column align-items-sm-center justify-content-end pagination_container">
+    <div class="d-flex flex-row align-items-center">
+        <span>Items per page:</span>
+
+        <!-- Page  Numbers Drop Down -->
+        <select class="form-select w-auto" onchange="OrderPaginationAjax(1)" aria-label="Default select example" id="OrderPageSize">
+            @if (Model.Page.PageSize != null)
+            {
+                <option value="3" selected="@(Model.Page.PageSize == 3 ? true : false)">3</option>
+                <option value="5" selected="@(Model.Page.PageSize == 5 ? true : false)">5</option>
+                <option value="10" selected="@(Model.Page.PageSize == 10 ? true : false)">10</option>
+                <option value="15" selected="@(Model.Page.PageSize == 15 ? true : false)">15</option>
+            }
+        </select>
+    </div>
+
+    <span style="margin-left: 8px" class="pagination_details">
+        Showing @Model.Page.FromRec - @Model.Page.ToRec of @Model.Page.TotalRecords
+
+    </span>
+
+    @if (Model.Page.TotalPages >= 1)
+    {
+        <div>
+            <!-- Previous Page button-->
+
+            <button type="button" class="btn border border-black prev_page" id="prevPageIcon" @(Model.Page.CurrentPage > 1 ?
+                " " : "disabled") onclick="OrderPaginationAjax(@Model.Page.CurrentPage-1)">
+                <img src="~/images/icons/chevron-left.svg" alt="" />
+            </button>
+
+            <!-- Next Page button-->
+            <button type="button" class="btn border border-black" id="nextPageIcon" @(Model.Page.CurrentPage <
+                Model.Page.TotalPages ? " " : "disabled") onclick="OrderPaginationAjax(@Model.Page.CurrentPage+1)">
+            <img src="~/images/icons/chevron-right.svg" alt="" />
+        </button>
+    </div>
+        }
+</div>
+<!-- Pagination Frontend Ends -->
+}

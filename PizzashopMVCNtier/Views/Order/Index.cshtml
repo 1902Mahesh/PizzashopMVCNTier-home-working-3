@@ -1,0 +1,179 @@
+@model DataLogicLayer.ViewModels.OrderIndexViewModel
+@{
+    ViewData["Title"] = "Order Page";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="body_content">
+    <!-- Search, Status, Time -->
+    <div class="heading my-3 d-flex flex-column flex-xl-row flex-warp justify-content-between">
+        <span class="fs-3 fs-md-1 user_header me-2">Orders</span>
+        <div class="search-element d-flex flex-column justify-content-end flex-md-row mt-2 mt-md-0 ">
+            <div class="d-flex position-relative col-lg-3 col-xl-4" role="search">
+                <input class="form-control me-2 search-user" type="search" placeholder="Search" id="orderSearch"
+                    aria-label="Search" />
+                <label for="search" class="search_icon" id="userSearchLabel" style="top: 10px;">
+                    <img src="~/images/icons/search.svg" /></label>
+            </div>
+
+            <div class="d-flex flex-column flex-sm-row">
+                <div
+                    class="statusTimeDropdown d-flex align-items-center py-1 my-1 my-lg-0 mx-lg-1 bg-white col-lg-3 col-xl-4 me-sm-3">
+                    <select class="form-select border-0" id="orderStatus">
+                        <option value="All Status">All Status</option>
+                        @foreach (var status in Model.orderStatus)
+                        {
+                            <option value="@status.Name">@status.Name</option>
+                        }
+                    </select>
+                </div>
+                <div
+                    class="statusTimeDropdown d-flex align-items-center py-1 my-1 my-lg-0 mx-lg-1 bg-white col-lg-3 col-xl-4 me-sm-3">
+                    <select class="form-select border-0" id="orderTimeRange">
+                        <option value="All Time">All Time</option>
+                        <option value="Last 7 Days">Last 7 days</option>
+                        <option value="Last 30 Days">Last 30 days</option>
+                        <option value="Current Month">Current Month</option>
+                    </select>
+                </div>
+            </div>
+
+            <a class="btn w-auto my-1 my-lg-0 ms-1 d-flex align-items-center justify-content-center text-white"
+                id="exportOrderBtn" style="background-color:#0066a7">
+                <img src="/images/icons/export-svgrepo-com.svg" width="35px">
+                Export
+            </a>
+        </div>
+    </div>
+
+    <!-- From Date, To Date -->
+    <div class="d-flex flex-column flex-lg-row justify-content-center justify-content-lg-end align-items-center mb-3">
+        <div class="dateSelection form-floating px-2 my-1 my-lg-0 col-sm-8 col-md-10 col-lg-3 col-xl-2">
+            <input type="date" class="form-control" id="orderFromDate">
+            <label for="itemName" class="mx-2">From Date</label>
+        </div>
+        <div class="dateSelection form-floating px-2 my-1 my-lg-0 col-sm-8 col-md-10 col-lg-3 col-xl-2">
+            <input type="date" class="form-control" id="orderToDate">
+            <label for="itemName" class="mx-2">To Date</label>
+        </div>
+        <div class="d-flex ms-2 p-1">
+            <a class="btn btn-primary d-flex justify-content-center align-items-center px-4"
+                style="background-color:#0066a7" id="orderSearchBtn">
+                Search
+            </a>
+            <a class="btn cancle_btn d-flex justify-content-center align-items-center ms-2 px-4">
+                Clear
+            </a>
+        </div>
+    </div>
+
+    <div id="orderTableContent" class="table_container">
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let columnName = "";
+        let sortOrder = "";
+        function OrderPaginationAjax(currentPage) {
+            let pageSize = $('#OrderPageSize').val();
+            let searchQuery = $('#orderSearch').val();
+            let toDate = $('#orderToDate').val();
+            let fromDate = $('#orderFromDate').val();
+            let status = $('#orderStatus').val();
+            let time = $('#orderTimeRange').val();
+            if (pageSize == 0 || pageSize == null) pageSize = 3;
+            if (searchQuery == null) searchQuery = "";
+            $.ajax({
+                url: '@Url.Action("GetOrderList", "Order")',
+                type: "GET",
+                data: { pageNo: currentPage, pageSize: pageSize, search: searchQuery, columnName: columnName, sortOrder: sortOrder, toDate: toDate, fromDate: fromDate, status: status, time: time },
+                dataType: "html",
+                success: function (data) {
+                    $("#orderTableContent").html(data);
+                },
+                error: function () {
+                    $("#orderTableContent").html('No Order Fetched');
+                }
+            })
+        }
+
+        $("#orderSearch").on("input", function (e) {
+            OrderPaginationAjax(1);
+        })
+
+        $(document).on("click", ".sort-btn", function () {
+            columnName = $(this).data("name");
+            sortOrder = $(this).data("order");
+            OrderPaginationAjax(1);
+        })
+
+        $(document).on("click", "#orderSearchBtn", function () {
+            OrderPaginationAjax(1);
+        })
+
+        $(document).ready(function () {
+            OrderPaginationAjax(1);
+        })
+    </script>
+    <script>
+        $(document).ready(function () {
+            var today = new Date().toISOString().split("T")[0];
+            $("#orderFromDate, #orderToDate").attr("max", today);
+
+            $("#orderFromDate").on("change", function () {
+                var fromDate = $(this).val();
+                $("#orderToDate").attr("min", fromDate);
+            });
+
+            $("#orderToDate").on("change", function () {
+                var toDate = $(this).val();
+                $("#orderFromDate").attr("max", toDate);
+            });
+        });
+    </script>
+    <script>
+        function ExportData() {
+            let searchQuery = $('#orderSearch').val();
+            let status = $('#orderStatus').val();
+            let time = $('#orderTimeRange').val();
+
+            if (searchQuery == null) searchQuery = "";
+
+            $.ajax({
+                url: '@Url.Action("ExportOrdersToExcel", "Order")',
+                type: "GET",
+                data: { search: searchQuery, status: status, time: time },
+                xhrFields: {
+                    responseType: 'blob'
+                },
+                success: function (data, status, xhr) {
+                    let filename = "Orders.xlsx";
+
+                    let disposition = xhr.getResponseHeader('Content-Disposition');
+                    if (disposition && disposition.indexOf('attachment') !== -1) {
+                        let matches = /filename="([^"]+)"/.exec(disposition);
+                        if (matches !== null && matches[1]) filename = matches[1];
+                    }
+
+                    let blob = new Blob([data], { type: xhr.getResponseHeader('Content-Type') });
+                    let link = document.createElement('a');
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                },
+                error: function () {
+                    console.log("Export Failed");
+                }
+            });
+        }
+
+        $(document).on("click", "#exportOrderBtn", function () {
+            ExportData();
+        });
+
+    </script>
+}
